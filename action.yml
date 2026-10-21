@@ -1,0 +1,111 @@
+name: Testlie email
+description: Create disposable Testlie inboxes, wait for an email in CI and extract its one-time code or magic link.
+author: Carrier Grade Inc.
+branding:
+  icon: mail
+  color: blue
+
+inputs:
+  mode:
+    description: "create-inbox, wait or delete-inbox"
+    required: true
+  api-key:
+    description: Testlie API key (tl_...). Store it as a secret. A read-only key can wait but not create or delete inboxes.
+    required: true
+  base-url:
+    description: Testlie URL, for self-hosted servers
+    required: false
+    default: https://testlie.com
+  name:
+    description: "create-inbox: inbox name (default: <repository>#<run id> <job>)"
+    required: false
+  disposable-minutes:
+    description: "create-inbox: delete the inbox and its messages after this many minutes; 0 keeps it"
+    required: false
+    default: "60"
+  address-tag:
+    description: "create-inbox: +tag for the address output, e.g. signup gives <alias>+signup@<domain>"
+    required: false
+  inbox-id:
+    description: "wait, delete-inbox: the inbox"
+    required: false
+  to:
+    description: "wait: exact recipient address"
+    required: false
+  subject:
+    description: "wait: text the subject contains (case-insensitive)"
+    required: false
+  since:
+    description: "wait: only messages received at or after this ISO time (create-inbox outputs one)"
+    required: false
+  timeout:
+    description: "wait: seconds to wait before failing"
+    required: false
+    default: "60"
+  link-pattern:
+    description: "wait: regular expression (case-insensitive) choosing the link output; default is the best magic link"
+    required: false
+
+outputs:
+  inbox-id:
+    description: "create-inbox: the new inbox's ID"
+    value: ${{ steps.run.outputs.inbox-id }}
+  smtp-host:
+    description: "create-inbox: SMTP host for the app under test"
+    value: ${{ steps.run.outputs.smtp-host }}
+  smtp-port:
+    description: "create-inbox: SMTP port (STARTTLS when the server has TLS)"
+    value: ${{ steps.run.outputs.smtp-port }}
+  smtp-username:
+    description: "create-inbox: SMTP username"
+    value: ${{ steps.run.outputs.smtp-username }}
+  smtp-password:
+    description: "create-inbox: SMTP password (masked in logs)"
+    value: ${{ steps.run.outputs.smtp-password }}
+  address:
+    description: "create-inbox: an address that lands in the inbox (with address-tag as +tag)"
+    value: ${{ steps.run.outputs.address }}
+  since:
+    description: "create-inbox: ISO time just before the inbox was created, for wait's since"
+    value: ${{ steps.run.outputs.since }}
+  expires-at:
+    description: "create-inbox: when a disposable inbox will be deleted"
+    value: ${{ steps.run.outputs.expires-at }}
+  message-id:
+    description: "wait: the matching message's ID"
+    value: ${{ steps.run.outputs.message-id }}
+  subject:
+    description: "wait: its subject"
+    value: ${{ steps.run.outputs.subject }}
+  from:
+    description: "wait: its sender address"
+    value: ${{ steps.run.outputs.from }}
+  otp:
+    description: "wait: the most likely one-time code, or empty"
+    value: ${{ steps.run.outputs.otp }}
+  link:
+    description: "wait: the best magic link (or the first link matching link-pattern), or empty"
+    value: ${{ steps.run.outputs.link }}
+  extract:
+    description: "wait: all codes, magic links and links as JSON"
+    value: ${{ steps.run.outputs.extract }}
+
+runs:
+  using: composite
+  steps:
+    - id: run
+      shell: bash
+      env:
+        INPUT_MODE: ${{ inputs.mode }}
+        INPUT_API_KEY: ${{ inputs.api-key }}
+        INPUT_BASE_URL: ${{ inputs.base-url }}
+        INPUT_NAME: ${{ inputs.name }}
+        INPUT_DISPOSABLE_MINUTES: ${{ inputs.disposable-minutes }}
+        INPUT_ADDRESS_TAG: ${{ inputs.address-tag }}
+        INPUT_INBOX_ID: ${{ inputs.inbox-id }}
+        INPUT_TO: ${{ inputs.to }}
+        INPUT_SUBJECT: ${{ inputs.subject }}
+        INPUT_SINCE: ${{ inputs.since }}
+        INPUT_TIMEOUT: ${{ inputs.timeout }}
+        INPUT_LINK_PATTERN: ${{ inputs.link-pattern }}
+      run: bash "$GITHUB_ACTION_PATH/testlie.sh"

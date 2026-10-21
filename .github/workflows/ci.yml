@@ -1,0 +1,22 @@
+# CI for the public GitHub Action repo (exported from the private Testlie repo by
+# scripts/release/split-public.sh; edit it there, not here).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash -n testlie.sh
+      - run: shellcheck -S warning testlie.sh
+      - run: |
+          python3 -m pip install --quiet pyyaml
+          python3 -c "import yaml; d=yaml.safe_load(open('action.yml')); assert d['runs']['using']=='composite', d"
